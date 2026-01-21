@@ -68,7 +68,7 @@ func (r *PostgresRepository[M]) GetOne(ctx *gin.Context, id uuid.UUID, userId *s
 	return *entity, nil
 }
 
-func (r *PostgresRepository[M]) GetMany(ctx *gin.Context, userId *string) ([]M, modelquery.ResponseMeta, error) {
+func (r *PostgresRepository[M]) GetMany(ctx *gin.Context, query interface{}, userId *string) ([]M, modelquery.ResponseMeta, error) {
 	db := r.client.getDB(ctx)
 	entities := make([]M, 0)
 	entity := new(M) // Just to show it in a log
