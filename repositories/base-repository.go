@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func Create[R interface{}, M interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, createItemRequest R) (M, error) {
+func Create[M interface{}, R interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, createItemRequest R) (M, error) {
 	db := client.getDB(ctx)
 
 	entity := new(M)
@@ -57,7 +57,7 @@ func GetOne[M interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, 
 	return *entity, nil
 }
 
-func GetMany[Q interface{}, M interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, query Q, userId *string) ([]M, modelquery.ResponseMeta, error) {
+func GetMany[M interface{}, Q interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, query Q, userId *string) ([]M, modelquery.ResponseMeta, error) {
 	db := client.getDB(ctx)
 	entities := make([]M, 0)
 	entity := new(M) // Just to show it in a log
