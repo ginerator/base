@@ -12,11 +12,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func Create[M interface{}, R interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, createItemRequest R) (M, error) {
-	db := client.getDB(ctx)
+type PostgresRepository[M interface{}] struct {
+	client *BunPostgresDatabaseClient
+}
+
+func NewPostgresRepository[M interface{}](dbClient *BunPostgresDatabaseClient) *PostgresRepository[M] {
+	log.Info().Msg("Room repository initialized.")
+	return &PostgresRepository[M]{
+		client: dbClient,
+	}
+}
+
+func (r *PostgresRepository[M]) Create(ctx *gin.Context, createItemRequest interface{}) (M, error) {
+	db := r.client.getDB(ctx)
 
 	entity := new(M)
-	_, err := db.NewInsert().Model(&createItemRequest).Returning("*").Exec(ctx, entity)
+	_, err := db.NewInsert().Model(createItemRequest).Returning("*").Exec(ctx, entity)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -27,8 +38,8 @@ func Create[M interface{}, R interface{}](ctx *gin.Context, client *BunPostgresD
 	return *entity, nil
 }
 
-func GetOne[M interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, id uuid.UUID, userId *string) (M, error) {
-	db := client.getDB(ctx)
+func (r *PostgresRepository[M]) GetOne(ctx *gin.Context, id uuid.UUID, userId *string) (M, error) {
+	db := r.client.getDB(ctx)
 
 	entity := new(M)
 	query := db.NewSelect().Model(entity).Where("id = ?", id).Where("deleted_at IS NULL")
@@ -57,8 +68,8 @@ func GetOne[M interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, 
 	return *entity, nil
 }
 
-func GetMany[M interface{}, Q interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, query Q, userId *string) ([]M, modelquery.ResponseMeta, error) {
-	db := client.getDB(ctx)
+func (r *PostgresRepository[M]) GetMany(ctx *gin.Context, userId *string) ([]M, modelquery.ResponseMeta, error) {
+	db := r.client.getDB(ctx)
 	entities := make([]M, 0)
 	entity := new(M) // Just to show it in a log
 	responseMeta := modelquery.ResponseMeta{}
@@ -89,10 +100,10 @@ func GetMany[M interface{}, Q interface{}](ctx *gin.Context, client *BunPostgres
 	return entities, utils.BuildResponseMeta(offset, limit, count), nil
 }
 
-func UpdateOne[M interface{}, R interface{}](ctx *gin.Context, client *BunPostgresDatabaseClient, id uuid.UUID, request R, userId *string) (M, error) {
+func (r *PostgresRepository[M]) UpdateOne(ctx *gin.Context, id uuid.UUID, request interface{}, userId *string) (M, error) {
 	entity := new(M)
 
-	query := client.getDB(ctx).NewUpdate().OmitZero().Model(&request).Where("id = ?", id).Where("deleted_at IS NULL").Returning("*")
+	query := r.client.getDB(ctx).NewUpdate().OmitZero().Model(request).Where("id = ?", id).Where("deleted_at IS NULL").Returning("*")
 	if userId != nil {
 		log.Debug().
 			Str("id", id.String()).
